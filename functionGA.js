@@ -242,7 +242,7 @@ function initializeMap() {
 }
 
 // FUNGSI UNTUK MENDAPATKAN INFO PERJALANAN (TOTAL DURASI PERJALAN DAN WAKTU)
-function getDistance(callback) {
+function getDistanceDurations(callback) {
   // MENDAPATKAN NILAI TOTAL PERJALANAN SAAT TOMBOL SEARCH RUTE DIJALANKAN
   var service = new google.maps.DistanceMatrixService();
   var nodes = [];
@@ -266,7 +266,7 @@ function getDistance(callback) {
     {
       origins: nodes,
       destinations: nodes,
-      travelMode: google.maps.TravelMode[$("#tipe-perjalanan").val()],
+      travelMode: google.maps.TravelMode["DRIVING"],
       avoidHighways: false,
       avoidTolls: false,
     },
@@ -278,14 +278,14 @@ function getDistance(callback) {
         distances[originNodeIndex] = [];
         for (destinationNodeIndex in nodeDistanceData) {
           if (
-            (distances[originNodeIndex][destinationNodeIndex] =
+            distances[originNodeIndex][destinationNodeIndex] =
               nodeDistanceData[destinationNodeIndex].distance == undefined)
-          ) {
+           {
             alert("Error: couldn't get a trip distance from API");
             return;
           }
           distances[originNodeIndex][destinationNodeIndex] =
-            nodeDistanceData[destinationNodeIndex].distance.value;
+            nodeDistanceData[destinationNodeIndex].duration.value;
         }
       }
 
@@ -382,7 +382,7 @@ function initMap() {
   $("#ga-buttons").hide();
 
   // FUNGSI UNTUK MENDAPATKAN DATA DURASI RUTE PERJALANAN
-  getDistance(function () {
+  getDistanceDurations(function () {
     $(".info-algoritma").show();
 
     // MENGAMBIL NILAI CONFIG ALGORITMA GENETIKA DAN MEMBUAT POPULASI ALGORITMA GENETIKA
@@ -403,12 +403,11 @@ function initMap() {
       function (update) {
         // Menampilkan generation yang sudah selesai di front-end html
         $("#jumlah-generasi").html(update.generation);
-        $('#waktu-terbaik').html((update.population.getFittest().getDistance() / 60).toFixed(2) + ' menit');
-
+        $('#waktu-terbaik').html((update.population.getFittest().getDistance()/60).toFixed(1) + ' menit');
         // Get route coordinates
         // Simpan kromosom dengan nilai fittest paling baik di generation sekarang ke route
+        
         var route = update.population.getFittest().chromosome;
-
         // Inisialisasi array routeCoordinates kemudian masukkan semua route ke dalam routeCoordinates
         var routeCoordinates = [];
         for (index in route) {
@@ -436,7 +435,7 @@ function initMap() {
         // Simpan kromosom dengan nilai fittest paling baik di generation terakhir ke route
         // Get route
         route = result.population.getFittest().chromosome;
-
+        $('#fitness-terbaik').html(result.population.rouletteWheelSelection().fitness.toFixed(6));
         // Meminta google maps service untuk direction
         // Add route to map
         directionsService = new google.maps.DirectionsService();
@@ -461,7 +460,7 @@ function initMap() {
           destination: nodes[route[0]],
           waypoints: waypts,
           optimizeWaypoints: false,
-          travelMode: google.maps.TravelMode[$("#tipe-perjalanan").val()],
+          travelMode: google.maps.TravelMode["DRIVING"],
           avoidHighways: false,
           avoidTolls: false,
         };
@@ -624,7 +623,6 @@ var ga = {
       generation++;
 
       // Jika generation sudah lebih dari maxGeneration maka hentikan algoritma dan panggil completeCallBack dan tampilkan hasil
-      // If max generations passed
       if (generation > ga.maxGenerations) {
         // Stop looping
         clearInterval(evolveInterval);
@@ -640,13 +638,12 @@ var ga = {
   },
 
   // Menyimpan semua individu dari populasi
-  // Population class
   population: function () {
     // Holds individuals of population
     this.individuals = [];
 
     // Menginisialisasi populasi dengan individual. Simpan hasil inisialisasi di this.individuals
-    // Initial population of random individuals with given chromosome length
+    // Populasi awal individu acak dengan panjang kromosom tertentu
     this.initialize = function (chromosomeLength) {
       this.individuals = [];
 
@@ -663,64 +660,8 @@ var ga = {
       }
     };
 
-    // Mutates current population
-    this.mutate = function () {
-      // Cari fittestIndex kemudian simpan di fittestIndex
-      var fittestIndex = this.getFittestIndex();
-
-      // Looping semua individu yang ada
-      for (index in this.individuals) {
-        // Don't mutate if this is the elite individual and elitism is enabled
-        if (ga.elitism != true || index != fittestIndex) {
-          this.individuals[index].mutate();
-        }
-      }
-    };
-
-    // Buat newPopulation dan initialisasi
-    // Applies crossover to current population and returns population of offspring
-    this.crossover = function () {
-      // Create offspring population
-      var newPopulation = new ga.population();
-
-      // Cari fittestIndex kemudian simpan di fittestIndex
-      // Find fittest individual
-      var fittestIndex = this.getFittestIndex();
-
-      // Looping semua individu yang ada
-      for (index in this.individuals) {
-        // Add unchanged into next generation if this is the elite individual and elitism is enabled
-        if (ga.elitism == true && index == fittestIndex) {
-          // Replicate individual
-          // Replicate individual ke eliteIndividual dengan individual sekarang
-          var eliteIndividual = new ga.individual(
-            this.individuals[index].chromosomeLength
-          );
-          // SetChromosome eliteIndividual dengan kromosom dari individual sekarang
-          eliteIndividual.setChromosome(
-            this.individuals[index].chromosome.slice()
-          );
-          // Tambahkan eliteIndividual ke newPopulation
-          newPopulation.addIndividual(eliteIndividual);
-        } else {
-          // Jika tidak maka lakukan roulleteWheelSelection
-          // Select mate
-          var parent = this.rouletteWheelSelection();
-          // Apply crossover
-          this.individuals[index].crossover(parent, newPopulation);
-        }
-      }
-
-      return newPopulation;
-    };
-
-    // Adds an individual to current population
-    this.addIndividual = function (individual) {
-      this.individuals.push(individual);
-    };
-
-    // Deklarasikan function roulletteWheelSelection, initialization totalFitness : 0, dan fitness : array
-    // Selects an individual with Roulette Wheel selection
+        // Deklarasikan function roulletteWheelSelection, initialization totalFitness : 0, dan fitness : array
+    // Memilih individu dengan pemilihan Roulette Wheel
     this.rouletteWheelSelection = function () {
       var totalFitness = 0;
       var fitness = [];
@@ -769,7 +710,62 @@ var ga = {
       return rouletteWheelPopulation.getFittest();
     };
 
-    // Return the fittest individual's population index
+    // Buat newPopulation dan initialisasi
+    // Terapkan crossover ke populasi saat ini dan mengembalikan populasi keturunan
+    this.crossover = function () {
+      // Create offspring population
+      var newPopulation = new ga.population();
+
+      // Cari fittestIndex kemudian simpan di fittestIndex
+      var fittestIndex = this.getFittestIndex();
+
+      // Looping semua individu yang ada
+      for (index in this.individuals) {
+        // Tambahkan perubahan ke generasi berikutnya jika ini adalah individu elit dan elitisme diaktifkan
+        if (ga.elitism == true && index == fittestIndex) {
+          // Replicate individual
+          // Replicate individual ke eliteIndividual dengan individual sekarang
+          var eliteIndividual = new ga.individual(
+            this.individuals[index].chromosomeLength
+          );
+          // SetChromosome eliteIndividual dengan kromosom dari individual sekarang
+          eliteIndividual.setChromosome(
+            this.individuals[index].chromosome.slice()
+          );
+          // Tambahkan eliteIndividual ke newPopulation
+          newPopulation.addIndividual(eliteIndividual);
+        } else {
+          // Jika tidak maka lakukan roulleteWheelSelection
+          // Select mate
+          var parent = this.rouletteWheelSelection();
+          // Apply crossover
+          this.individuals[index].crossover(parent, newPopulation);
+        }
+      }
+
+      return newPopulation;
+    };
+
+    // Menambahkan individu ke populasi saat ini
+    this.addIndividual = function (individual) {
+      this.individuals.push(individual);
+    };
+
+    // Memutasi populasi saat ini
+    this.mutate = function () {
+      // Cari fittestIndex kemudian simpan di fittestIndex
+      var fittestIndex = this.getFittestIndex();
+
+      // Looping semua individu yang ada
+      for (index in this.individuals) {
+        // Jangan bermutasi jika ini adalah individu elit dan elitisme diaktifkan
+        if (ga.elitism != true || index != fittestIndex) {
+          this.individuals[index].mutate();
+        }
+      }
+    };
+
+    // Mengembalikan indeks populasi individu terkuat
     this.getFittestIndex = function () {
       // Nilai fittestIndex = 0
       var fittestIndex = 0;
@@ -826,28 +822,11 @@ var ga = {
     };
 
     // Set kromosom individual dengan kromosom baru
-    // Set individual's chromosome
     this.setChromosome = function (chromosome) {
       this.chromosome = chromosome;
     };
 
-    // Mutate individual
-    this.mutate = function () {
-      this.fitness = null;
-
-      // Looping sebanyak jumlah kromosom
-      // Loop over chromosome making random changes
-      for (index in this.chromosome) {
-        if (ga.mutationRate > Math.random()) {
-          var randomIndex = Math.floor(Math.random() * this.chromosomeLength);
-          var tempNode = this.chromosome[randomIndex];
-          this.chromosome[randomIndex] = this.chromosome[index];
-          this.chromosome[index] = tempNode;
-        }
-      }
-    };
-
-    // Returns individuals route distance
+    // Mengembalikan individu untuk mendapatkan jarak dan waktu rute
     this.getDistance = function () {
       // Nilai totalDistance = 0
       var totalDistance = 0;
@@ -860,8 +839,8 @@ var ga = {
         var endNode = this.chromosome[0];
 
         // Jika index + 1 lebih kecil dari jumlah kromosom maka endNode = kromosom index sekarang + 1
-        if (parseInt(index) + 1 < this.chromosome.length) {
-          endNode = this.chromosome[parseInt(index) + 1];
+        if ((parseInt(index) + 1) < this.chromosome.length) {
+          endNode = this.chromosome[(parseInt(index) + 1)];
         }
 
         // Tambah distance dari startNode hingga endNode dimana startNode adalah node dengan index sekarang ke endNode
@@ -880,21 +859,20 @@ var ga = {
       if (this.fitness != null) {
         return this.fitness;
       }
-
       // Jika tidak maka hitung totalDistance
       var totalDistance = this.getDistance();
 
       // Kemudian cari fitness dengan rumus F(x)=1/f(x) dimana f(x) adalah total distance yang didapatkan tadi kemudian kembalikan nilai fitness.
       this.fitness = 1 / totalDistance;
-      // $("#totalFitness").text(this.fitness);
+      
       return this.fitness;      
     };
 
-    // Applies crossover to current individual and mate, then adds it's offspring to given population
+    // Menerapkan persilangan ke individu dan pasangan saat ini, lalu menambahkan keturunannya ke populasi tertentu
     this.crossover = function (individual, offspringPopulation) {
       var offspringChromosome = [];
 
-      // Add a random amount of this individual's genetic information to offspring
+      // Tambahkan sejumlah informasi random genetik individu ini ke keturunannya
       var startPos = Math.floor(this.chromosome.length * Math.random());
       var endPos = Math.floor(this.chromosome.length * Math.random());
 
@@ -908,7 +886,7 @@ var ga = {
         }
       }
 
-      // Add any remaining genetic information from individual's mate
+      // Tambahkan informasi genetik yang tersisa dari pasangan individu
       for (parentIndex in individual.chromosome) {
         var node = individual.chromosome[parentIndex];
 
@@ -934,10 +912,27 @@ var ga = {
         }
       }
 
-      // Add chromosome to offspring and add offspring to population
+      // Tambahkan kromosom ke keturunan dan tambahkan keturunan ke populasi
       var offspring = new ga.individual(this.chromosomeLength);
       offspring.setChromosome(offspringChromosome);
       offspringPopulation.addIndividual(offspring);
+    };  
+
+    // Mutate individual
+    this.mutate = function () {
+      this.fitness = null;
+
+      // Looping sebanyak jumlah kromosom
+      // Loop over chromosome making random changes
+      for (index in this.chromosome) {
+        if (ga.mutationRate > Math.random()) {
+          var randomIndex = Math.floor(Math.random() * this.chromosomeLength);
+          var tempNode = this.chromosome[randomIndex];
+          this.chromosome[randomIndex] = this.chromosome[index];
+          this.chromosome[index] = tempNode;
+        }
+      }
     };
   },
-};
+ 
+}

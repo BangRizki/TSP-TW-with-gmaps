@@ -64,12 +64,6 @@
         <div class="konfigurasi-algoritma">
           <h2>Konfigurasi Algoritma Genetika</h2>
 
-          <label for="tipe-perjalanan">Travel Mode</label>
-          <select class="m-wrap" id="tipe-perjalanan">
-            <option value="DRIVING">Mobil</option>
-            <option value="WALKING">Jalan Kaki</option>
-          </select>
-
           <label for="jumlah-populasi">Jumlah Populasi</label>
           <select name="jumlah-populasi" id="jumlah-populasi" class="m-wrap">
             <option value="5">5</option>
@@ -134,6 +128,10 @@
           <p id="jumlah-lokasi">0</p>
           <br />
           <div class="info-algoritma" style="display: none">
+            <h3>Jumlah populasi:</h3>
+            <p id="populasi-dipilih">0</p>
+          </div>
+          <div class="info-algoritma" style="display: none">
             <h3>Rasio mutasi:</h3>
             <p id="mutasi-dipilih">0</p>
           </div>
@@ -148,6 +146,10 @@
           <div class="info-algoritma" style="display: none">
             <h3>Generations:</h3>
             <p id="jumlah-generasi">0</p>
+          </div>
+          <div class="info-algoritma" style="display: none">
+            <h3>Fitness terbaik:</h3>
+            <p id="fitness-terbaik">?</p>
           </div>
           <div class="info-algoritma" style="display: none">
             <h3>Total waktu tempuh:</h3>
